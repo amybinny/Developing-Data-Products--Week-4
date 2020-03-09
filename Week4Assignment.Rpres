@@ -1,0 +1,116 @@
+Week 4 Assignment-Part 2
+========================================================
+author: 
+date: March 9, 2020
+autosize: true
+
+Introduction
+========================================================
+This is the second part of the Week 4 Assignment of the course Developing Data Products. In the first part we created a shiny document which contains a plot of the predicted poulation in Us based on the murder arrests that happened in the year 1973. 
+
+Shiny app produced document is https://amybinny.shinyapps.io/Week4Assignment/ and the codes are available in the github account linked- https://github.com/amybinny/Developing-Data-Products--Week-4
+
+Data set for Shiny
+========================================================
+The data set used is USArrests which contains statistics, in arrests per 100,000 residents for assault, murder, and rape in each of the 50 US states in 1973.  Also given is the percent of the population living in urban areas.
+
+In this project we predicted the population based on the murder arrests statistics given in this data set. 
+
+Documentation
+========================================================
+In the Shiny App document, we have used slider bars on the murder arrests which in turn gives us an interative plot that depicts the population. 
+
+We have also utilized functions like reactive too, which is why we can see a button called 'Submit'. 
+
+This interactive plot using predict funtion gives the population based on a new data set created during the plot.
+
+Shiny codes in ui.R
+========================================================
+
+```{r,eval=FALSE}
+library(shiny)
+shinyUI(fluidPage(
+    titlePanel("Predict Population from Murder cases"),
+    sidebarLayout(
+        sidebarPanel(
+            sliderInput("sliderMurder","What are the number of murder cases?",
+                        min = 0,max = 20,step = .1, value = 200),
+            checkboxInput("showModel1","SHow/Hide Murder Arrests", value = TRUE),
+            checkboxInput("showModel2","SHow/Hide Modified Murder Arrests", value = TRUE),
+            submitButton("Submit")
+        ),
+         mainPanel(
+            plotOutput("plot1"),
+            h3("Predicted Population from Murder cases:"),
+            textOutput("pred1"),
+            h3("Predicted Population from Modified Murder cases:"),
+            textOutput("pred2")
+        )
+    )
+))
+```
+
+Shiny codes in server.R
+========================================================
+```{r, eval=FALSE}
+library(shiny)
+shinyServer(function(input, output) {
+    USArrests$pop <- ifelse(USArrests$Murder-7>0,USArrests$Murder-7,0)
+    model1       <- lm(UrbanPop~Murder,data=USArrests)
+    model2       <- lm(UrbanPop~pop+Murder,data=USArrests)    
+    model1pred    <- reactive({
+        MurderInput <- input$sliderMurder
+        predict(model1,newdata=data.frame(Murder=MurderInput))
+    })
+    model2pred   <- reactive({
+        MurderInput <- input$sliderMurder
+        predict(model2,newdata=data.frame(Murder=MurderInput,
+                pop=ifelse(MurderInput-7>0,MurderInput-7,0)))
+    })
+    output$plot1 <- renderPlot({
+        MurderInput <- input$sliderMurder
+        plot(USArrests$Murder,USArrests$UrbanPop,xlab="Murder arrests 
+             (per 100,000)", ylab="Percent Urban Population", 
+             bty="n",pch=16,xlim = c(0,20),ylim = c(30,100))
+        if(input$showModel1){
+            abline(model1,col="red", lwd=2)
+        }
+        if(input$showModel2){
+            model2lines<- predict(model2,newdata=data.frame(Murder=0:20,
+            pop=ifelse(0:20-7>0,0:20-7,0)))
+            lines(0:20,model2lines,col="blue",lwd=2)
+        }
+        legend(10,100,c("Murder Arrest Population Prediction","Modified Murder Arrest Population Prediction"), 
+               pch=16,col=c("red","blue"), bty="n",cex=0.8)
+        points(MurderInput,model1pred(),col="red",pch=16,cex=2)
+        points(MurderInput,model2pred(),col="blue",pch=16,cex=2)
+    })
+    output$pred1 <- renderText({
+        model1pred()
+    })
+    output$pred2 <- renderText({
+        model2pred()
+    })
+})
+```
+
+Slide With Plot
+========================================================
+
+The plot in the shiny app is given below
+
+```{r, echo=FALSE}
+data(USArrests)
+USArrests$pop <- ifelse(USArrests$Murder-7>0,USArrests$Murder-7,0)
+    model1       <- lm(UrbanPop~Murder,data=USArrests)
+    model2       <- lm(UrbanPop~pop+Murder,data=USArrests)  
+    plot(USArrests$Murder,USArrests$UrbanPop,xlab="Murder arrests 
+             (per 100,000)", ylab="Percent Urban Population", 
+             bty="n",pch=16,xlim = c(0,20),ylim = c(30,100))
+    abline(model1,col="red", lwd=2)
+    model2lines<- predict(model2,newdata=data.frame(Murder=0:20,
+            pop=ifelse(0:20-7>0,0:20-7,0)))
+            lines(0:20,model2lines,col="blue",lwd=2)
+            legend(10,100,c("Murder Arrest Population Prediction","Modified Murder Arrest Population Prediction"), 
+               pch=16,col=c("red","blue"), bty="n",cex=0.8)
+```
